@@ -81,12 +81,14 @@ pmset_battery_remaining_time() {
 upower_battery_remaining_time() {
 	battery=$(upower -e | grep -E 'battery|DisplayDevice'| tail -n1)
 	if battery_discharging; then
-		local remaining_time
-		remaining_time=$(upower -i "$battery" | grep -E '(remain|time to empty)')
-		if $short; then
-			echo "$remaining_time" | awk '{printf "%s %s", $(NF-1), $(NF)}'
-		else
-			echo "$remaining_time" | awk '{printf "%s %s left", $(NF-1), $(NF)}'
+		local remaining_time=$(upower -i "$battery" | grep -E '(remain|time to empty)' | awk '{print $(NF-1)}')
+        local hours=$(echo $remaining_time | cut -d. -f1)
+        local decimal=$(echo $remaining_time | cut -d. -f2)
+        local minutes=$(printf "%02d" $(echo "scale=0;.${decimal} * 60 / 1" | bc))
+
+        echo "${hours}:${minutes}"
+        if !$short; then
+			echo " left"
 		fi
 	elif battery_charged; then
 		if $short; then
@@ -95,12 +97,14 @@ upower_battery_remaining_time() {
 			echo "charged"
 		fi
 	else
-		local remaining_time
-		remaining_time=$(upower -i "$battery" | grep -E 'time to full')
-		if $short; then
-			echo "$remaining_time" | awk '{printf "%s %s", $(NF-1), $(NF)}'
-		else
-			echo "$remaining_time" | awk '{printf "%s %s to full", $(NF-1), $(NF)}'
+		local remaining_time=$(upower -i "$battery" | grep -E 'time to full' | awk '{print $(NF-1)}')
+        local hours=$(echo $remaining_time | cut -d. -f1)
+        local decimal=$(echo $remaining_time | cut -d. -f2)
+        local minutes=$(printf "%02d" $(echo "scale=0;.${decimal} * 60 / 1" | bc))
+
+        echo -n "${hours}:${minutes}"
+        if !$short; then
+			echo " to full"
 		fi
 	fi
 }
